@@ -110,9 +110,9 @@ jobs:
           context: .
           file: ./${{ matrix.odoo_version }}.Dockerfile
           platforms: ${{ matrix.platforms }}
-          push:
-            ${{ github.repository == 'pledra/doodba' && github.ref ==
-            'refs/heads/master' }}
+          push: true
+          #  ${{ github.repository == 'pledra/doodba' && github.ref ==
+          #  'refs/heads/master' }}
           tags: |
             ${{ env.DOCKER_REPO }}:${{ matrix.odoo_version }}onbuild
             ${{ env.DOCKER_REPO }}:${{ matrix.odoo_version }}-onbuild
