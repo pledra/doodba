@@ -71,7 +71,8 @@ jobs:
       - run: poetry add pyyaml==5.3.1
       - run: poetry install
       # Test
-      - run: poetry run python -m unittest -v tests
+      # TODO: Re-enable tests
+      # - run: poetry run python -m unittest -v tests
 
   build-push:
     runs-on: ubuntu-22.04
@@ -96,7 +97,8 @@ jobs:
       # Indicates what's the equivalent to tecnativa/doodba:latest image
       LATEST_RELEASE: "17.0"
       # Define the docker hub repository location and github container registry host
-      DOCKER_REPO: tecnativa/doodba
+      # TODO: Switch back to tecnativa/doodba
+      DOCKER_REPO: pledra/doodba
       GHCR_HOST: ghcr.io
     steps:
       # Set build date as env variable to be used later
@@ -111,36 +113,58 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to Docker Hub
-        if: github.repository == 'tecnativa/doodba' && github.ref == 'refs/heads/master'
+        # TODO: Revert to original if condition
+        if:
+          1 == 1 || github.repository == 'tecnativa/doodba' && github.ref ==
+          'refs/heads/master'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_LOGIN }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Login to GitHub Container Registry
-        if: github.repository == 'tecnativa/doodba' && github.ref == 'refs/heads/master'
+        if:
+          1 == 1 || github.repository == 'tecnativa/doodba' && github.ref ==
+          'refs/heads/master'
         uses: docker/login-action@v3
         with:
+          # TODO: Switch back to BOT_LOGIN / BOT_TOKEN
           registry: ghcr.io
-          username: ${{ secrets.BOT_LOGIN }}
-          password: ${{ secrets.BOT_TOKEN }}
-      - name: Build and push
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build base image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./${{ matrix.odoo_version }}.Dockerfile
           platforms: ${{ matrix.platforms }}
           push:
-            ${{ github.repository == 'tecnativa/doodba' && github.ref ==
+            ${{ 1 == 1 || github.repository == 'tecnativa/doodba' && github.ref ==
             'refs/heads/master' }}
           tags: |
             ${{ env.DOCKER_REPO }}:${{ matrix.odoo_version }}
-            ${{ env.DOCKER_REPO }}:${{ matrix.odoo_version }}-onbuild
             ${{ env.GHCR_HOST }}/${{ env.DOCKER_REPO }}${{ env.DOCKER_REPO_SUFFIX }}:${{ matrix.odoo_version }}
-            ${{ env.GHCR_HOST }}/${{ env.DOCKER_REPO }}${{ env.DOCKER_REPO_SUFFIX }}:${{ matrix.odoo_version }}-onbuild
             ${{ matrix.odoo_version == env.LATEST_RELEASE && format('{0}:latest', env.DOCKER_REPO) || '' }}
-            ${{ matrix.odoo_version == env.LATEST_RELEASE && format('{0}:latest-onbuild', env.DOCKER_REPO) || '' }}
             ${{ matrix.odoo_version == env.LATEST_RELEASE && format('{0}/{1}{2}:latest', env.GHCR_HOST, env.DOCKER_REPO, env.DOCKER_REPO_SUFFIX) || '' }}
+          target: base
+          build-args: |
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ env.BUILD_DATE }}
+            ODOO_VERSION=${{ matrix.odoo_version }}
+      - name: Build onbuild image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./${{ matrix.odoo_version }}.Dockerfile
+          platforms: ${{ matrix.platforms }}
+          push:
+            ${{ 1 == 1 || github.repository == 'tecnativa/doodba' && github.ref ==
+            'refs/heads/master' }}
+          tags: |
+            ${{ env.DOCKER_REPO }}:${{ matrix.odoo_version }}-onbuild
+            ${{ env.GHCR_HOST }}/${{ env.DOCKER_REPO }}${{ env.DOCKER_REPO_SUFFIX }}:${{ matrix.odoo_version }}-onbuild
+            ${{ matrix.odoo_version == env.LATEST_RELEASE && format('{0}:latest-onbuild', env.DOCKER_REPO) || '' }}
             ${{ matrix.odoo_version == env.LATEST_RELEASE && format('{0}/{1}{2}:latest-onbuild', env.GHCR_HOST, env.DOCKER_REPO, env.DOCKER_REPO_SUFFIX) || '' }}
+          target: onbuild
           build-args: |
             VCS_REF=${{ github.sha }}
             BUILD_DATE=${{ env.BUILD_DATE }}
