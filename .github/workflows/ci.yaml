@@ -137,9 +137,6 @@ jobs:
           context: .
           file: ./${{ matrix.odoo_version }}.Dockerfile
           platforms: ${{ matrix.platforms }}
-          push:
-            ${{ 1 == 1 || github.repository == 'tecnativa/doodba' && github.ref ==
-            'refs/heads/master' }}
           tags: |
             ${{ env.DOCKER_REPO }}:${{ matrix.odoo_version }}
             ${{ env.GHCR_HOST }}/${{ env.DOCKER_REPO }}${{ env.DOCKER_REPO_SUFFIX }}:${{ matrix.odoo_version }}
@@ -156,9 +153,6 @@ jobs:
           context: .
           file: ./${{ matrix.odoo_version }}.Dockerfile
           platforms: ${{ matrix.platforms }}
-          push:
-            ${{ 1 == 1 || github.repository == 'tecnativa/doodba' && github.ref ==
-            'refs/heads/master' }}
           tags: |
             ${{ env.DOCKER_REPO }}:${{ matrix.odoo_version }}-onbuild
             ${{ env.GHCR_HOST }}/${{ env.DOCKER_REPO }}${{ env.DOCKER_REPO_SUFFIX }}:${{ matrix.odoo_version }}-onbuild
@@ -169,3 +163,16 @@ jobs:
             VCS_REF=${{ github.sha }}
             BUILD_DATE=${{ env.BUILD_DATE }}
             ODOO_VERSION=${{ matrix.odoo_version }}
+
+      - name: Push images
+        if:
+          1 == 1 || github.repository == 'tecnativa/doodba' && github.ref ==
+          'refs/heads/master'
+        run: |
+          # Find all image IDs for the current build
+          DOCKER_IMAGES=$(docker images "${{ env.DOCKER_REPO }}*" --format "{{.Repository}}:{{.Tag}}" | grep "${{ matrix.odoo_version }}\|latest")
+
+          # Push each tag found
+          echo "$DOCKER_IMAGES" | while read TAG; do
+            docker push "$TAG"
+          done
